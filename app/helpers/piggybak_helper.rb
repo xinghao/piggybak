@@ -1,6 +1,6 @@
 module PiggybakHelper
   def cart_form(object, options = {})
-    render "piggybak/cart/form", :object => object, :locals => { :options => options }
+    render "piggybak/cart/#{options["template_name"]}/form", :object => object, :locals => { :options => options }
   end
   def cart_link
     cart = Piggybak::Cart.new(request.cookies["cart"])

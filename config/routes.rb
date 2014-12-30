@@ -2,6 +2,7 @@ Piggybak::Engine.routes.draw do
   # cart actions
   get '/cart' => 'cart#show'
   post '/cart/add' => 'cart#add', as: :cart_add
+  post '/cart/add_ajax' => 'cart#add_ajax', as: :cart_add_ajax
   post '/cart/update' => 'cart#update', as: :cart_update
   delete '/cart/remove/:item' => 'cart#remove', as: :remove_item
 

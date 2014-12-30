@@ -41,7 +41,7 @@ module Piggybak
       self.recorded_changes ||= []
 
       self.billing_address ||= Piggybak::Address.new
-      self.shipping_address ||= Piggybak::Address.new
+      self.shipping_address ||= Piggybak::Address.new      
       self.shipping_address.is_shipping = true
 
       self.ip_address ||= 'admin'
@@ -52,6 +52,11 @@ module Piggybak
       self.total ||= 0
       self.total_due ||= 0
       self.disable_order_notes = false
+      
+      u = self.user
+      self.shipping_address.firstname = u.first_name if !u.first_name.blank? 
+      self.shipping_address.lastname = u.last_name if !u.last_name.blank?
+      
     end
 
     def number_payments

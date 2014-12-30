@@ -4,6 +4,7 @@ module Piggybak
     attr_accessor :total
     attr_accessor :errors
     attr_accessor :extra_data
+    attr_accessor :items_total
     alias :subtotal :total
     alias :items :sellables
   
@@ -67,7 +68,7 @@ module Piggybak
   
     def update_quantities
       self.errors = []
-      new_sellables = []
+      new_sellables = []      
       self.sellables.each do |item|
         if !item[:sellable].active
           self.errors << ["Sorry, #{item[:sellable].description} is no longer for sale"]
@@ -83,6 +84,7 @@ module Piggybak
       end
       self.sellables = new_sellables
       self.total = self.sellables.sum { |item| item[:quantity]*item[:sellable].price }
+      self.items_total = self.sellables.sum { |item| item[:quantity] }
     end
 
     def set_extra_data(form_params)

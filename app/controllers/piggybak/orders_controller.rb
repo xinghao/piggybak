@@ -1,5 +1,16 @@
 module Piggybak
-  class OrdersController < ApplicationController
+  class OrdersController < Microsite::ApplicationController  
+    
+  before_filter :auth_user
+
+  def auth_user    
+    if !user_signed_in?
+      session[:previous_url] = request.fullpath
+      Rails.logger.info("FFFFFFFFFFFFFFFFFFF: #{session[:previous_url]}")
+      redirect_to microsite.new_user_session_url      
+    end
+  end
+      
     def submit
       response.headers['Cache-Control'] = 'no-cache'
       @cart = Piggybak::Cart.new(request.cookies["cart"])
