@@ -1,5 +1,8 @@
 module Piggybak
   class ShippingMethod < ActiveRecord::Base
+    PICKUP = "pickup"
+    DELIVERY = "delivery"
+    
     has_many :shipping_method_values, :dependent => :destroy
     alias :metadata :shipping_method_values
 
@@ -52,5 +55,30 @@ module Piggybak
     def admin_label
       self.description
     end
+    
+    def self.get_pickup_method
+      pu = Piggybak::ShippingMethod.find_by(description: PICKUP)
+      if pu.nil?
+        pu = init_pickup_mehtods
+      end
+      return pu
+    end
+
+    def self.get_delivery_method
+      dl = Piggybak::ShippingMethod.find_by(description: DELIVERY)
+      if dl.nil?
+        dl = init_delivery_mehtods
+      end
+      return dl
+    end
+    
+    def self.init_pickup_mehtods
+      return Piggybak::ShippingMethod.create(description: "pickup", klass: "::Piggybak::ShippingCalculator::Free", active: true)
+    end
+    
+    def self.init_delivery_mehtods
+      return Piggybak::ShippingMethod.create(description: "delivery", klass: "::Piggybak::ShippingCalculator::Free", active: true)
+    end
+    
   end
 end

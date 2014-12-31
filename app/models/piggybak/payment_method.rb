@@ -1,5 +1,7 @@
 module Piggybak 
   class PaymentMethod < ActiveRecord::Base
+    CASH_ON_DELIVERY = "cash on delivery"
+    CASH_ON_PICKUP = "cash on pickup"
     has_many :payment_method_values, :dependent => :destroy
     alias :metadata :payment_method_values
 
@@ -38,5 +40,32 @@ module Piggybak
     def admin_label
       "#{self.description}"
     end
+    
+
+    def self.cash_on_delivery
+      dl = Piggybak::PaymentMethod.find_by(description: CASH_ON_DELIVERY)
+      if dl.nil?
+        dl = init_cash_on_delivery
+      end
+      return dl
+    end
+    
+    def self.cash_on_pickup
+      dl = Piggybak::PaymentMethod.find_by(description: CASH_ON_PICKUP)
+      if dl.nil?
+        dl = init_cash_on_pickup
+      end
+      return dl
+    end    
+    
+    def self.init_cash_on_delivery
+      return Piggybak::PaymentMethod.create(description: CASH_ON_DELIVERY, klass: "::Piggybak::PaymentCalculator::Fake", active: true)
+    end
+    
+    def self.init_cash_on_pickup
+      return Piggybak::PaymentMethod.create(description: CASH_ON_PICKUP, klass: "::Piggybak::PaymentCalculator::Fake", active: false)
+    end
+    
+        
   end
 end

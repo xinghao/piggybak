@@ -1,5 +1,6 @@
 module Piggybak
   class Order < ActiveRecord::Base
+    PHONE_NOT_PROVIDED = "not provided"
     has_many :line_items, :inverse_of => :order
     has_many :order_notes, :inverse_of => :order
 
@@ -29,9 +30,15 @@ module Piggybak
     before_save :postprocess_order, :update_status, :set_new_record
     after_save :record_order_note
     after_save :deliver_order_confirmation, :if => Proc.new { |order| !order.confirmation_sent }
+    before_save :fake_billing_address
 
+    before_validation :generate_order_number, :on => :create
     default_scope { order('created_at ASC') }
 
+    def fake_billing_address
+      self.billing_address_id = self.shipping_address_id if self.billing_address_id.nil?   
+    end
+    
     def deliver_order_confirmation
       Piggybak::Notifier.order_notification(self).deliver
       self.update_column(:confirmation_sent,true)
@@ -40,7 +47,7 @@ module Piggybak
     def initialize_defaults
       self.recorded_changes ||= []
 
-      self.billing_address ||= Piggybak::Address.new
+      #self.billing_address ||= Piggybak::Address.new
       self.shipping_address ||= Piggybak::Address.new      
       self.shipping_address.is_shipping = true
 
@@ -53,14 +60,28 @@ module Piggybak
       self.total_due ||= 0
       self.disable_order_notes = false
       
-      u = self.user
-      self.shipping_address.firstname = u.first_name if !u.first_name.blank? 
-      self.shipping_address.lastname = u.last_name if !u.last_name.blank?
+    end
+    
+    def autofill_shopping_address
       
+      u = self.user
+      if !u.nil?
+        self.shipping_address.firstname = u.first_name if !u.first_name.blank? 
+        self.shipping_address.lastname = u.last_name if !u.last_name.blank?
+
+        patient = u.patient
+        if !patient.nil?
+          self.shipping_address.address1 = patient.street_number if !patient.street_number.blank?
+          self.shipping_address.address2 = patient.street if !patient.street.blank?
+          self.shipping_address.city = patient.city if !patient.city.blank?
+          self.shipping_address.state_id = patient.state if !patient.state.blank?
+          self.shipping_address.zip = patient.zip if !patient.zip.blank?
+          self.phone = patient.phone_number if !patient.phone_number.blank?
+        end
+      end
     end
 
     def number_payments
-
       new_payments = self.line_items.payments.select { |li| li.new_record? }
       if new_payments.size > 1
         self.errors.add(:base, "Only one payment may be created at a time.")
@@ -78,14 +99,12 @@ module Piggybak
     end
 
     def postprocess_order
-
       # Mark line items for destruction if quantity == 0
       self.line_items.each do |line_item|
         if line_item.quantity == 0
           line_item.mark_for_destruction
         end
       end
-
       # Recalculate and create line item for tax
       # If a tax line item already exists, reset price
       # If a tax line item doesn't, create
@@ -222,5 +241,39 @@ module Piggybak
     def admin_label
       "Order ##{self.id}"    
     end
+    
+    def generate_order_number
+      record = true
+      while record
+        random = "R#{Array.new(9){rand(9)}.join}"
+        record = self.class.where(:number => random).first
+      end
+      self.number = random if self.number.blank?
+      self.number
+    end
+    
+    def shipment
+      shipment_line_item = self.line_items.detect { |li| li.line_item_type == "shipment" }
+      return nil if shipment_line_item.nil?
+      return shipment_line_item.shipment   
+    end
+    
+    def shipment_method
+      sm = self.shipment
+      return nil if sm.nil?
+      return sm.shipping_method     
+    end
+    
+    def is_pickup_order?
+      sm = self.shipment_method
+      return nil if sm.nil?
+      return true if sm.description.downcase == Piggybak::ShippingMethod::PICKUP.downcase
+      return false
+    end
+    
+    def no_phone
+      self.phone = PHONE_NOT_PROVIDED 
+    end
+        
   end
 end

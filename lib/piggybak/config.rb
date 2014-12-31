@@ -29,8 +29,8 @@ module Piggybak
                            "::Piggybak::Order"]
         @extra_abilities = []
 
-        @email_sender = "support@piggybak.org"
-        @order_cc = nil
+        #@email_sender = "support@piggybak.org"
+        #@order_cc = "xinghao.yu@airarena.net"
 
         @payment_calculators = ["::Piggybak::PaymentCalculator::Fake",
                                 "::Piggybak::PaymentCalculator::AuthorizeNet"]

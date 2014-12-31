@@ -6,8 +6,8 @@ module Piggybak
 
     validates :status, presence: true
     validates :payment_method_id, presence: true
-    validates :month, presence: true
-    validates :year, presence: true
+    #validates :month, presence: true
+    #validates :year, presence: true
 
     attr_accessor :number
     attr_accessor :verification_value
@@ -35,6 +35,7 @@ module Piggybak
 
     def process(order)
       return true if !self.new_record?
+      return true # faked by xinghao
 
       ActiveMerchant::Billing::Base.mode = Piggybak.config.activemerchant_mode
 
@@ -71,18 +72,19 @@ module Piggybak
       end
     end
 
-    validates_each :payment_method_id do |record, attr, value|
-      if record.new_record?
-        credit_card = ActiveMerchant::Billing::CreditCard.new(record.credit_card)
-     
-        if !credit_card.valid?
-          credit_card.errors.each do |key, value|
-            if value.any? && !["first_name", "last_name", "type"].include?(key)
-              record.errors.add key, (value.is_a?(Array) ? value.join(', ') : value)
-            end
-          end
-        end
-      end
-    end
+    # comment credit card validation by xinghao
+    # validates_each :payment_method_id do |record, attr, value|
+      # if record.new_record?
+        # credit_card = ActiveMerchant::Billing::CreditCard.new(record.credit_card)
+#      
+        # if !credit_card.valid?
+          # credit_card.errors.each do |key, value|
+            # if value.any? && !["first_name", "last_name", "type"].include?(key)
+              # record.errors.add key, (value.is_a?(Array) ? value.join(', ') : value)
+            # end
+          # end
+        # end
+      # end
+    # end
   end
 end

@@ -1,8 +1,9 @@
 module Piggybak
   class OrdersController < Microsite::ApplicationController  
-    
+   
   before_filter :auth_user
-
+  #before_filter :load_shipment_methods
+  
   def auth_user    
     if !user_signed_in?
       session[:previous_url] = request.fullpath
@@ -10,19 +11,27 @@ module Piggybak
       redirect_to microsite.new_user_session_url      
     end
   end
-      
+
+  # def load_shipment_methods
+    # @delivery = Piggybak::ShippingMethod.get_delivery_method
+    # @pickup = Piggybak::ShippingMethod.get_pickup_method
+  # end
+    
     def submit
+      
       response.headers['Cache-Control'] = 'no-cache'
+      
       @cart = Piggybak::Cart.new(request.cookies["cart"])
-
+      
       if request.post?
-        logger = Logger.new("#{Rails.root}/#{Piggybak.config.logging_file}")
-
+        logger = Logger.new("#{Rails.root}/#{Piggybak.config.logging_file}") 
         begin
           ActiveRecord::Base.transaction do
+            Rails.logger.info "step1"
             @order = Piggybak::Order.new(orders_params)
+            Rails.logger.info "step2"
             @order.create_payment_shipment
-
+            Rails.logger.info "step3"
             if Piggybak.config.logging
               clean_params = params[:order].clone
               clean_params[:line_items_attributes].each do |k, li_attr|
@@ -37,32 +46,44 @@ module Piggybak
               end
               logger.info "#{request.remote_ip}:#{Time.now.strftime("%Y-%m-%d %H:%M")} Order received with params #{clean_params.inspect}" 
             end
+            Rails.logger.info "step4"
             @order.initialize_user(current_user)
-
             @order.ip_address = request.remote_ip 
-            @order.user_agent = request.user_agent  
+            @order.user_agent = request.user_agent
+            Rails.logger.info "step5"  
             @order.add_line_items(@cart)
-
+            Rails.logger.info "step6"
             if Piggybak.config.logging
               logger.info "#{request.remote_ip}:#{Time.now.strftime("%Y-%m-%d %H:%M")} Order contains: #{cookies["cart"]} for user #{current_user ? current_user.email : 'guest'}"
             end
-
+            Rails.logger.info "step7: #{@order.line_items.to_json}"
+            if @order.is_pickup_order?
+              @order.shipping_address = nil
+              @order.no_phone
+            end  
+            Rails.logger.info @order.to_json
+            
+            
             if @order.save
+              Rails.logger.info "step71"
               if Piggybak.config.logging
                 logger.info "#{request.remote_ip}:#{Time.now.strftime("%Y-%m-%d %H:%M")} Order saved: #{@order.inspect}"
               end
-
+              
               cookies["cart"] = { :value => '', :path => '/' }
               session[:last_order] = @order.id
               redirect_to piggybak.receipt_url 
             else
+              Rails.logger.info "step72"
               if Piggybak.config.logging
-                logger.warn "#{request.remote_ip}:#{Time.now.strftime("%Y-%m-%d %H:%M")} Order failed to save #{@order.errors.full_messages} with #{@order.inspect}."
+                logger.info.warn "#{request.remote_ip}:#{Time.now.strftime("%Y-%m-%d %H:%M")} Order failed to save #{@order.errors.full_messages} with #{@order.inspect}."
               end
               raise Exception, @order.errors.full_messages
             end
+            Rails.logger.info "step8"
           end
         rescue Exception => e
+          Rails.logger.info "#{e.inspect}"
           if Piggybak.config.logging
             logger.warn "#{request.remote_ip}:#{Time.now.strftime("%Y-%m-%d %H:%M")} Order exception: #{e.inspect}"
           end
@@ -74,6 +95,7 @@ module Piggybak
         @order = Piggybak::Order.new
         @order.create_payment_shipment
         @order.initialize_user(current_user)
+        @order.autofill_shopping_address
       end
     end
   
