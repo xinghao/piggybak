@@ -3,11 +3,10 @@ module Piggybak
    
   before_filter :auth_user
   #before_filter :load_shipment_methods
-  
+    
   def auth_user    
     if !user_signed_in?
       session[:previous_url] = request.fullpath
-      Rails.logger.info("FFFFFFFFFFFFFFFFFFF: #{session[:previous_url]}")
       redirect_to microsite.new_user_session_url      
     end
   end
@@ -16,6 +15,15 @@ module Piggybak
     # @delivery = Piggybak::ShippingMethod.get_delivery_method
     # @pickup = Piggybak::ShippingMethod.get_pickup_method
   # end
+  
+  def show
+    @order = Piggybak::Order.find_by(number: params[:id])
+    if @order.nil?
+      render :file => "#{Rails.root}/public/404.html",  :status => 404
+      return
+    end
+    
+  end
     
     def submit
       
@@ -27,11 +35,15 @@ module Piggybak
         logger = Logger.new("#{Rails.root}/#{Piggybak.config.logging_file}") 
         begin
           ActiveRecord::Base.transaction do
-            Rails.logger.info "step1"
+            
             @order = Piggybak::Order.new(orders_params)
-            Rails.logger.info "step2"
+            
+            @order.dispensary_id = @microsite.dispensary_id
+            @order.microsite_order = true
+            @order.admin_created_order = false
             @order.create_payment_shipment
-            Rails.logger.info "step3"
+            
+            
             if Piggybak.config.logging
               clean_params = params[:order].clone
               clean_params[:line_items_attributes].each do |k, li_attr|
@@ -46,26 +58,27 @@ module Piggybak
               end
               logger.info "#{request.remote_ip}:#{Time.now.strftime("%Y-%m-%d %H:%M")} Order received with params #{clean_params.inspect}" 
             end
-            Rails.logger.info "step4"
+            
             @order.initialize_user(current_user)
             @order.ip_address = request.remote_ip 
             @order.user_agent = request.user_agent
-            Rails.logger.info "step5"  
+              
             @order.add_line_items(@cart)
-            Rails.logger.info "step6"
+            
             if Piggybak.config.logging
               logger.info "#{request.remote_ip}:#{Time.now.strftime("%Y-%m-%d %H:%M")} Order contains: #{cookies["cart"]} for user #{current_user ? current_user.email : 'guest'}"
             end
-            Rails.logger.info "step7: #{@order.line_items.to_json}"
+            
             if @order.is_pickup_order?
               @order.shipping_address = nil
               @order.no_phone
             end  
-            Rails.logger.info @order.to_json
             
+            Rails.logger.info @order.to_json
+            Rails.logger.info @order.line_items.to_json
             
             if @order.save
-              Rails.logger.info "step71"
+            
               if Piggybak.config.logging
                 logger.info "#{request.remote_ip}:#{Time.now.strftime("%Y-%m-%d %H:%M")} Order saved: #{@order.inspect}"
               end
@@ -74,13 +87,13 @@ module Piggybak
               session[:last_order] = @order.id
               redirect_to piggybak.receipt_url 
             else
-              Rails.logger.info "step72"
+            
               if Piggybak.config.logging
                 logger.info.warn "#{request.remote_ip}:#{Time.now.strftime("%Y-%m-%d %H:%M")} Order failed to save #{@order.errors.full_messages} with #{@order.inspect}."
               end
               raise Exception, @order.errors.full_messages
             end
-            Rails.logger.info "step8"
+            
           end
         rescue Exception => e
           Rails.logger.info "#{e.inspect}"
@@ -188,7 +201,7 @@ module Piggybak
     private
     def orders_params
       nested_attributes = [shipment_attributes: [:shipping_method_id], 
-                           payment_attributes: [:number, :verification_value, :month, :year]].first.merge(Piggybak.config.additional_line_item_attributes)
+                           payment_attributes: [:number, :verification_value, :month, :year, :payment_method_id]].first.merge(Piggybak.config.additional_line_item_attributes)
       line_item_attributes = [:sellable_id, :price, :unit_price, :description, :quantity, :line_item_type, nested_attributes]
       params.require(:order).permit(:user_id, :email, :phone, :ip_address,
                                     billing_address_attributes: [:firstname, :lastname, :address1, :location, :address2, :city, :state_id, :zip, :country_id],

@@ -264,6 +264,18 @@ module Piggybak
       return sm.shipping_method     
     end
     
+    def payment
+      shipment_line_item = self.line_items.detect { |li| li.line_item_type == "payment" }
+      return nil if shipment_line_item.nil?
+      return shipment_line_item.payment   
+    end
+    
+    def payment_method
+      sm = self.payment
+      return nil if sm.nil?
+      return sm.payment_method     
+    end    
+    
     def is_pickup_order?
       sm = self.shipment_method
       return nil if sm.nil?
@@ -274,6 +286,9 @@ module Piggybak
     def no_phone
       self.phone = PHONE_NOT_PROVIDED 
     end
-        
+    
+    def self.user_microsite_orders(dispensary_id, user_id)
+      return Piggybak::Order.where(user_id: user_id, dispensary_id: dispensary_id, microsite_order: true).to_a      
+    end
   end
 end

@@ -23,15 +23,29 @@ module Piggybak
     end
 
     def admin_label
-      address = "#{self.firstname} #{self.lastname}<br />"
-      address += "#{self.address1}<br />"
-      if self.address2 && self.address2 != ''
-        address += "#{self.address2}<br />"
-      end
-      address += "#{self.city}, #{self.state_display} #{self.zip}<br />"
-      address += "#{self.country.name}"
-      address
+      address  = "<ul>"
+      address += "<li><h6>First name</h6><h6>#{self.firstname}</h6>" if !self.firstname.blank?
+      address += "<li><h6>Last name</h6><h6>#{self.lastname}</h6>" if !self.lastname.blank?
+      address += "<li><h6>Street address</h6><h6>#{self.address1} #{self.address2}</h6>" if !self.address1.blank? || !self.address2.blank?
+      address += "<li><h6>City</h6><h6>#{self.city}</h6>" if !self.city.blank?
+      address += "<li><h6>State</h6><h6>#{self.state_id}</h6>" if !self.state_id.blank?      
+      address += "<li><h6>zip</h6><h6>#{self.zip}</h6>" if !self.zip.blank?
+      address += "</ul>"
+      return address.html_safe
     end
+    
+    # def admin_label
+      # address = "#{self.firstname} #{self.lastname}<br />"
+      # address += "#{self.address1}<br />"
+      # if self.address2 && self.address2 != ''
+        # address += "#{self.address2}<br />"
+      # end
+      # address += "#{self.city}, #{self.state_display} #{self.zip}<br />"
+      # address += "#{self.country.name}"
+      # address
+    # end
+    
+    
     alias :display :admin_label  
 
     def state_display
