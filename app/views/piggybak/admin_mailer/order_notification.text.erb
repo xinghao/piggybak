@@ -1,0 +1,19 @@
+Order has been placed: <%=microsite.order_show_url(@order.number)%>
+
+Items
+
+<% @order.line_items.sellables.each do |line_item| %>
+<%= line_item.description %> x <%= line_item.quantity %> = <%= number_to_currency line_item.price %>
+<% end -%>
+
+<% @order.line_items.shipments.each do |line_item| %>
+<%= line_item.description %> = <%= number_to_currency line_item.price %>
+<% end -%>
+
+<% @order.line_items.payments.each do |line_item| %>
+<%= line_item.description %> = <%= number_to_currency -1*line_item.price %>
+<% end -%>
+
+Total
+
+<%= number_to_currency @order.total %>	

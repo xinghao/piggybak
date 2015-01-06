@@ -6,7 +6,7 @@ module Piggybak
       @order = order
 
       mail(:to => order.email,
-           :subject => "Order ##{@order.id}")
+           :subject => "Order ##{@order.number}")
     end
   end
 end

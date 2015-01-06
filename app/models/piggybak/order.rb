@@ -1,6 +1,7 @@
 module Piggybak
   class Order < ActiveRecord::Base
     PHONE_NOT_PROVIDED = "not provided"
+    belongs_to :dispensary
     has_many :line_items, :inverse_of => :order
     has_many :order_notes, :inverse_of => :order
 
@@ -39,8 +40,12 @@ module Piggybak
       self.billing_address_id = self.shipping_address_id if self.billing_address_id.nil?   
     end
     
-    def deliver_order_confirmation
+    def deliver_order_confirmation      
       Piggybak::Notifier.order_notification(self).deliver
+        #begin
+          Piggybak::AdminMailer.order_notification(self).deliver
+        #rescue
+        #end      
       self.update_column(:confirmation_sent,true)
     end
  
