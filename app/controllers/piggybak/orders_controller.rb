@@ -150,28 +150,37 @@ module Piggybak
     end
 
     def cancel
-      order = Piggybak::Order.where(id: params[:id]).first
+      order = Piggybak::Order.where(number: params[:id]).first
 
-      if can?(:cancel, order)
+      if current_user.dispensary_owner?(@microsite.dispensary)   #can?(:cancel, order)
         order.recorded_changer = current_user.id
         order.disable_order_notes = true
 
         order.line_items.each do |line_item|
           if line_item.line_item_type != "payment"
-            line_item.mark_for_destruction
+            #line_item.mark_for_destruction
           end
         end
+
+        if order.is_pickup_order?
+          order.shipping_address = nil
+        end 
+
+        
+
         order.update_attribute(:total, 0.00)
+                    
+
         order.update_attribute(:to_be_cancelled, true)
 
         OrderNote.create(:order_id => order.id, :note => "Order set to cancelled. Line items, shipments, tax removed.", :user_id => current_user.id)
-        
+
         flash[:notice] = "Order #{order.id} set to cancelled. Order is now in unbalanced state."
       else
         flash[:error] = "You do not have permission to cancel this order."
       end
 
-      redirect_to rails_admin.edit_path('Piggybak::Order', order.id)
+      redirect_to microsite.backend_orders_path #rails_admin.edit_path('Piggybak::Order', order.id)
     end
 
     # AJAX Actions from checkout

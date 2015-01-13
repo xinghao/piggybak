@@ -10,5 +10,9 @@ module Piggybak
     def status_enum
       ["new", "processing", "shipped"]
     end
+    
+    def get_order
+      self.line_item.order
+    end
   end
 end

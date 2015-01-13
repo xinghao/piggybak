@@ -1,6 +1,12 @@
 module Piggybak
   class Order < ActiveRecord::Base
     PHONE_NOT_PROVIDED = "not provided"
+    PENDING = "pending"
+    NEW_ORDER = "new"
+    SHIPPED = "shipped"
+    PROCESSING = "processing"
+    CHANCELLED = "cancelled"
+    ALL_ORDERS = "all"
     belongs_to :dispensary
     has_many :line_items, :inverse_of => :order
     has_many :order_notes, :inverse_of => :order
@@ -295,5 +301,6 @@ module Piggybak
     def self.user_microsite_orders(dispensary_id, user_id)
       return Piggybak::Order.where(user_id: user_id, dispensary_id: dispensary_id, microsite_order: true).to_a      
     end
+    
   end
 end
