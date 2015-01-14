@@ -18,10 +18,11 @@ module Piggybak
   
   def show
     @order = Piggybak::Order.find_by(number: params[:id])
-    if @order.nil?
+    if @order.nil? || (@order.user_id != current_user.id && !current_user.dispensary_owner?(@dispensary))
       render :file => "#{Rails.root}/public/404.html",  :status => 404
       return
     end
+    
     
   end
     
